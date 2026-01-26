@@ -8,6 +8,10 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.CANBus.CANBusStatus;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.sim.Pigeon2SimState;
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -188,7 +192,7 @@ public class SwerveSubsystem extends SubsystemBase {
   }
 
 
-  public SwerveSubsystem() {
+   public SwerveSubsystem() {
     /*new Thread(() -> {
       try{Thread.sleep(1000);
         resetHeading();
@@ -198,6 +202,34 @@ public class SwerveSubsystem extends SubsystemBase {
       }
     }).start();*/
     
+    RobotConfig config = null;
+    try{
+      config = RobotConfig.fromGUISettings();
+    } catch (Exception e) {
+      // Handle exception as needed
+      e.printStackTrace();
+    }
+
+    // Configure AutoBuilder last
+   AutoBuilder.configure(
+    this::getPoseEstimatorPose, 
+    this::resetPoseEstimatorPose, 
+    this::getSpeed, 
+    this::drive, 
+    new PPHolonomicDriveController(
+        Constants.SwerveSubsystemConstants.translationConstants,
+        Constants.SwerveSubsystemConstants.rotationConstants
+    ),
+    config, // 👈 şimdi AUTO SPEED buradan geliyor
+    () -> {
+        var alliance = DriverStation.getAlliance();
+        if (alliance.isPresent()) {
+            return alliance.get() == DriverStation.Alliance.Blue;
+        }
+        return false;
+    },
+    this
+);
   }
 
   public Pose2d getPoseEstimatorPose() {
